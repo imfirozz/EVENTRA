@@ -1,0 +1,41 @@
+# EVENTRA — Initial Risk Register
+
+---
+
+## 1. Risk Evaluation Methodology
+
+> [!NOTE] Risk Matrix Classification
+> - **Critical**: High Impact + High Probability (Requires immediate mitigation plan before proceeding).
+> - **High**: High Impact + Medium Probability OR Medium Impact + High Probability.
+> - **Medium**: Medium Impact + Medium Probability OR High Impact + Low Probability.
+> - **Low**: Low Impact + Low/Medium Probability.
+
+---
+
+## 2. Professional Risk Register Table
+
+| Risk ID | Category | Risk Description | Cause | Impact | Probability | Risk Level | Mitigation Strategy | Contingency Plan | Owner | Phase to Revisit |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **RSK-001** | **Scope** | Uncontrolled feature expansion (e.g. 3D seat maps, social messaging) delays core ticketing engine delivery. | Adding nice-to-have features before completing MVP tier requirements. | High | Medium | **High** | Enforce Sub-Phase 1.5 Scope Freeze checklist. Reject any Tier B/C feature during Tier A implementation. | Immediately freeze all feature development and revert scope strictly to Tier A MVP boundaries. | Solo Developer | Phase 2 & Phase 4 |
+| **RSK-002** | **Schedule** | Task 1 HTML/CSS landing page takes too long, delaying backend architecture development. | Over-polishing UI styles or refactoring CSS prematurely. | Medium | Medium | **Medium** | Scope Task 1 strictly to responsive HTML5/CSS3 baseline layout (`v0.1.0`) without complex JS frameworks. | Timebox Task 1 UI implementation to 3 development sessions. | Solo Developer | Phase 3 |
+| **RSK-003** | **Architecture** | Premature decomposition into microservices creates massive networking & operational overhead. | Misguided desire for microservice resume decoration. | High | Low | **Medium** | Enforce ADR-001 (Modular Monolith Architecture). All modules must reside within a single deployment codebase. | Refactor any microservice code back into clean, bounded-context domain folders within the monolith. | Solo Developer | Phase 4 |
+| **RSK-004** | **Database** | DB deadlocks and connection pool exhaustion under concurrent write bursts. | Unindexed queries, unoptimized SQL joins, and long-running DB transactions inside HTTP handlers. | High | Medium | **High** | Use connection pooling (PgBouncer/Knex pool), explicit query indexing, and short-lived atomic transactions. | Fall back to Redis TTL reservation hold locks to offload write concurrency from PostgreSQL. | Solo Developer | Phase 4 & Phase 6 |
+| **RSK-005** | **Booking Concurrency** | Race condition causes ticket overselling during flash sales (2 users claim last remaining ticket). | Concurrent DB threads reading stock simultaneously before writing decrement. | High | Medium | **High** | Use SELECT ... FOR UPDATE pessimistic row locks or atomic Redis Lua scripts with 5-minute TTL holds. | System detects oversell condition $\rightarrow$ automatically voids second booking and issues instant refund. | Solo Developer | Phase 5 & Phase 6 |
+| **RSK-006** | **Payment Consistency** | Payment webhook fails or arrives out of order, leaving ticket in `RESERVED` state after money is charged. | Gateway network timeouts, unhandled HTTP errors, or missing webhook idempotency checks. | High | Medium | **High** | Verify webhook signatures (`Stripe-Signature`), enforce idempotent event processing by transaction ID. | Implement background reconciliation job that queries payment status for stuck `RESERVED` tickets every 15 mins. | Solo Developer | Phase 5 |
+| **RSK-007** | **Security** | Attacker tampers with ticket QR code payload to gain unauthorized gate entry or duplicate tickets. | Plain-text QR payload containing only plain unencrypted ticket IDs. | High | Low | **Medium** | Cryptographically sign QR payloads using HMAC-SHA256 with server secret key and event salt. | Scanner app flags tampered payload $\rightarrow$ blocks entry $\rightarrow$ staff prompts user to present original email receipt. | Solo Developer | Phase 6 |
+| **RSK-008** | **Privacy** | Unauthorized access or exposure of attendee Personally Identifiable Information (PII). | Storing unencrypted PII in public logs or insecure API endpoints. | High | Low | **Medium** | Strip PII from server logs; enforce HTTPS TLS 1.3; restrict user endpoints with JWT authentication middleware. | Revoke compromised tokens, force user password resets, notify affected users in accordance with privacy rules. | Solo Developer | Phase 4 & Phase 7 |
+| **RSK-009** | **Performance** | High catalog traffic crashes app due to un-cached database queries on event landing pages. | Fetching full event details from PostgreSQL on every page request during high traffic. | Medium | Medium | **Medium** | Cache public event catalog and detail page responses in Redis with short TTL invalidation on update. | Serve static cached HTML/JSON snapshots via CDN/Nginx proxy if application backend becomes sluggish. | Solo Developer | Phase 6 |
+| **RSK-010** | **Infrastructure** | Docker container runs out of memory (OOM) or disk space on single-instance VPS. | Unconstrained memory growth in Node.js process or unmonitored log file growth. | Medium | Low | **Low** | Set Docker container memory limits (`--memory=1g`), configure log rotation (`json-file` max-size 10m). | Docker restart policy (`restart: unless-stopped`) automatically restarts container on memory crash. | Solo Developer | Phase 7 |
+| **RSK-011** | **Third-Party Services** | Payment gateway (Stripe) or Email API (SendGrid) experiences service outage. | Third-party vendor infrastructure downtime. | Medium | Low | **Low** | Wrap external API calls in circuit breaker patterns and retry handlers with exponential backoff. | Store failed email jobs in BullMQ persistent queue to auto-retry when email service recovers. | Solo Developer | Phase 5 |
+| **RSK-012** | **Data Loss** | Database corruption or accidental drop results in loss of event & ticket booking records. | Server disk crash, un-tested migration scripts, or human error. | Critical | Low | **High** | Configure automated daily PostgreSQL logical backups (`pg_dump`) saved to offsite storage (S3/local). | Restore latest database snapshot; replay payment gateway webhook log to reconstruct missing paid bookings. | Solo Developer | Phase 4 & Phase 7 |
+| **RSK-013** | **Deployment** | Production release introduces breaking API changes or database migration failure. | Deploying un-tested schema migrations directly to live environment. | High | Low | **Medium** | Test database migrations against staging data locally; run automated integration test suite in CI pipeline. | Roll back database migration script using inverse migration (`down` script) and redeploy previous image. | Solo Developer | Phase 7 |
+| **RSK-014** | **Solo-Dev Workload** | Developer fatigue or context overload causes project stagnation or skipped testing. | Managing UI, backend, DB, security, and ops simultaneously without breaks. | Medium | Medium | **Medium** | Maintain clean modular architecture; enforce clear SDLC docs; prioritize automated testing over manual QA. | Pause new feature additions; focus exclusively on fixing existing code and completing current sub-phase. | Solo Developer | All Phases |
+| **RSK-015** | **Overengineering** | Building complex custom framework abstractions instead of simple standard code. | Attempting to solve speculative future problems prematurely. | Medium | Medium | **Medium** | Adhere strictly to Product Guiding Principle: "Correctness Over Cleverness" and "Pragmatic Solo Maintainability". | Code review refactor: delete custom abstraction layers and replace with standard library calls. | Solo Developer | Phase 4 |
+
+---
+
+## 3. Definition of Done (DoD) — Sub-Phase 1.11
+- [x] Risk Register covers all 15 required categories (Scope, Schedule, Architecture, Database, Concurrency, Payment, Security, Privacy, Performance, Infrastructure, Third-Party, Data Loss, Deployment, Solo-Dev, Overengineering).
+- [x] Qualitative Risk Level assigned based on Impact and Probability.
+- [x] Concrete Mitigation strategy, Contingency plan, Owner, and Phase to Revisit specified for every risk entry.
+- [x] Documented and saved to [`docs/11_RISK_REGISTER.md`](file:///Users/firozansari/Downloads/Coading/Intership/docs/11_RISK_REGISTER.md).
