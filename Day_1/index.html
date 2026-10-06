@@ -419,5 +419,16 @@
         <p>&copy; 2026 EVENTRA. All rights reserved.</p>
       </div>
     </footer>
+    <script>
+      // Automatically close mobile menu when a nav link is clicked
+      const navToggle = document.getElementById("nav-toggle");
+      if (navToggle) {
+        document.querySelectorAll(".main-nav a").forEach((link) => {
+          link.addEventListener("click", () => {
+            navToggle.checked = false;
+          });
+        });
+      }
+    </script>
   </body>
 </html>
