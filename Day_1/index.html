@@ -420,14 +420,34 @@
       </div>
     </footer>
     <script>
-      // Automatically close mobile menu when a nav link is clicked
+      // 10/10 Interactive Mobile Menu UX & Accessibility
       const navToggle = document.getElementById("nav-toggle");
+      const navLabel = document.querySelector(".nav-toggle-label");
+
       if (navToggle) {
+        // Close menu on nav link click
         document.querySelectorAll(".main-nav a").forEach((link) => {
           link.addEventListener("click", () => {
             navToggle.checked = false;
           });
         });
+
+        // Close menu on Escape key press
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && navToggle.checked) {
+            navToggle.checked = false;
+          }
+        });
+
+        // Keyboard activation on hamburger label (Enter / Space)
+        if (navLabel) {
+          navLabel.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              navToggle.checked = !navToggle.checked;
+            }
+          });
+        }
       }
     </script>
   </body>
